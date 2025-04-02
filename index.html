@@ -1,119 +1,192 @@
+
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR 코드 리더</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-            background-color: #f0f0f0;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border: 2px solid #4CAF50;
-            border-radius: 10px;
-            background-color: #e6f4ea;
-            color: #217346;
-            text-align: center;
-            font-size: 1.2em;
-            max-width: 80%;
-            word-wrap: break-word;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out, margin-top 0.5s ease-in-out;
-        }
-        #result.show {
-            opacity: 1;
-            margin-top: 20px;
-        }
-        #video {
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 1 / 1;
-            border: 2px solid #333;
-            margin-top: 20px;
-            border-radius: 8px;
-        }
-        #canvas {
-            display: none;
-        }
-        button {
-            margin-top: 15px;
-            padding: 10px 15px;
-            font-size: 1em;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-    </style>
+<title>QR 코드 리더</title>
+<style>
+body {
+font-family: Arial, sans-serif;
+margin: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: flex-start;
+min-height: 100vh;
+background-color: #f0f0f0;
+}
+
+#result {
+margin-top: 20px;
+padding: 15px;
+border: 2px solid #4CAF50;
+border-radius: 10px;
+background-color: #e6f4ea;
+color: #217346;
+text-align: center;
+font-size: 1.2em;
+max-width: 80%;
+word-wrap: break-word;
+opacity: 0;
+transition: opacity 0.5s ease-in-out, margin-top 0.5s ease-in-out;
+margin-bottom: 0;
+}
+
+#result.show {
+opacity: 1;
+margin-top: 20px;
+}
+
+#video {
+width: 90%;
+max-width: 250px;
+height: auto;
+aspect-ratio: 1 / 1;
+border: 2px solid #333;
+margin-top: 20px;
+box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+border-radius: 8px;
+}
+
+#canvas {
+display: none;
+}
+
+.container {
+display: flex;
+flex-direction: column;
+align-items: center;
+width: 100%;
+padding-bottom: 20px;
+}
+
+button {
+margin-top: 15px;
+padding: 10px 20px;
+font-size: 1em;
+background-color: #4CAF50;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+}
+</style>
 </head>
 <body>
-    <div>
-        <div id="result">QR 코드를 스캔해주세요.</div>
-        <video id="video" autoplay playsinline></video>
-        <button onclick="startScanning()">QR 스캔 시작</button>
-        <canvas id="canvas"></canvas>
-    </div>
+<div class="container">
+<div id="result">QR 코드를 스캔해주세요.</div>
+<video id="video" autoplay playsinline></video>
+<button onclick="startScanning()">출석 체크하기</button>
+<canvas id="canvas"></canvas>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script>
-        let video = document.getElementById("video");
-        let canvas = document.getElementById("canvas");
-        let context = canvas.getContext("2d");
-        let resultDiv = document.getElementById("result");
-        let scanning = false;
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const context = canvas.getContext("2d");
+const resultDiv = document.getElementById("result");
+let scanning = false;
+let stream = null;
 
-        function startScanning() {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function (stream) {
-                    video.srcObject = stream;
-                    video.play();
-                    scanning = true;
-                    requestAnimationFrame(scanFrame);
-                })
-                .catch(function (error) {
-                    console.error("카메라 접근 오류:", error);
-                    resultDiv.textContent = "카메라 접근 오류: " + error;
-                });
-        }
+function showScanPrompt() {
+resultDiv.innerHTML = "📷 <strong>QR 코드를 스캔해주세요.</strong>";
+resultDiv.classList.add("show");
+}
 
-        function scanFrame() {
-            if (!scanning) return;
+// 카메라 스트림 초기화
+async function initCamera() {
+try {
+stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+video.srcObject = stream;
+await video.play();
+} catch (error) {
+console.error("카메라 접근 오류:", error);
+resultDiv.textContent = "카메라 접근 오류: " + error.message;
+}
+}
 
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+// 출석 체크 버튼 누르면 QR 스캔 시작
+function startScanning() {
+if (!stream) {
+resultDiv.textContent = "카메라가 아직 준비되지 않았습니다.";
+return;
+}
 
-                if (code) {
-                    scanning = false;
-                    resultDiv.textContent = "QR 데이터: " + code.data;
-                    resultDiv.classList.add("show");
+scanning = true;
+requestAnimationFrame(tick);
+}
 
-                    const utterance = new SpeechSynthesisUtterance("QR 코드가 인식되었습니다.");
-                    speechSynthesis.speak(utterance);
+function tick() {
+if (!scanning) return;
 
-                    setTimeout(() => {
-                        scanning = true;
-                        resultDiv.classList.remove("show");
-                        resultDiv.textContent = "QR 코드를 스캔해주세요.";
-                        requestAnimationFrame(scanFrame);
-                    }, 3000);
-                }
-            }
-            requestAnimationFrame(scanFrame);
-        }
-    </script>
+if (video.readyState === video.HAVE_ENOUGH_DATA) {
+canvas.height = video.videoHeight;
+canvas.width = video.videoWidth;
+context.drawImage(video, 0, 0, canvas.width, canvas.height);
+const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+const code = jsQR(imageData.data, imageData.width, imageData.height, {
+inversionAttempts: "dontInvert",
+});
+
+if (code) {
+scanning = false;
+const qrData = code.data;
+
+try {
+const parsed = JSON.parse(qrData);
+const name = parsed.name || "";
+
+const lastTimeKey = `lastScan_${name}`;
+const lastScan = localStorage.getItem(lastTimeKey);
+const now = Date.now();
+
+if (lastScan && now - parseInt(lastScan) < 3600000) {
+resultDiv.textContent = `${name}님은 이미 출석하셨습니다. 1시간 후 다시 시도해주세요.`;
+resultDiv.classList.add('show');
+speechSynthesis.speak(new SpeechSynthesisUtterance(`${name}님은 이미 출석하셨습니다. 1시간 후 다시 시도해주세요.`));
+setTimeout(() => location.reload(), 3000);
+return;
+}
+
+localStorage.setItem(lastTimeKey, now);
+resultDiv.textContent = `${name}님의 출석이 확인되었습니다!`;
+resultDiv.classList.add('show');
+speechSynthesis.speak(new SpeechSynthesisUtterance(`${name}님, 출석이 확인되었습니다.`));
+sendDataToGAS(qrData);
+setTimeout(() => location.reload(), 3000);
+
+} catch (e) {
+resultDiv.textContent = "QR 코드 데이터 오류: JSON 형식이 아닙니다.";
+setTimeout(() => location.reload(), 3000);
+}
+} else {
+resultDiv.textContent = "QR 코드를 찾을 수 없습니다.";
+}
+}
+requestAnimationFrame(tick);
+}
+
+function sendDataToGAS(qrData) {
+const gasUrl = "https://script.google.com/macros/s/AKfycbzZ6s1fAis8UMHoWwyfErviE9EOObXIzFoKZ1zNZAPaWwETzaemrVY83L06c7eMYzhfHw/exec";
+const encoded = encodeURIComponent(qrData);
+const fullUrl = `${gasUrl}?data=${encoded}`;
+
+fetch(fullUrl)
+.then(response => response.text())
+.then(data => {
+console.log("GAS 응답:", data);
+})
+.catch(error => {
+console.error("Fetch error:", error);
+resultDiv.textContent = "Fetch error: " + error.message;
+});
+}
+
+// 페이지 로드시 카메라 초기화
+window.addEventListener("load", () => {
+showScanPrompt();
+initCamera();
+});
+</script>
 </body>
 </html>
