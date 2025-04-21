@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>신림청춘대학</title>
+ 
+  <style>
+    /* 기존 스타일 (유지) */
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; padding: 0; margin: 0; font-size: 1.6em; background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .fixed-header { position: fixed; top: 0; width: 100%; background-color: #f4f4f4; text-align: center; font-size: 1.6em; font-weight: bold; padding: 20px; z-index: 1000; border-bottom: 1px solid #ccc; }
+    .step { margin-top: 120px; margin-bottom: 30px; width: 95%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .step h3 { font-size: 1.6em; font-weight: bold; }
+    .step h4 { font-size: 1.6em; font-weight: bold; }
+    .label-row { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; width: 100%; max-width: 400px; }
+    .label-row label { font-size: 1.6em; font-weight: bold; text-align: center; margin-bottom: 5px; }
+    .label-row input[type="text"], .label-row input[type="tel"], .label-row .birth-input-group input { width: 100%; max-width: 330px; padding: 12px; font-size: 1.6em; margin: 5px 0; text-align: center; }
+    .label-row .birth-input-group { display: flex; flex-direction: row; width: 100%; max-width: 330px; justify-content: center; }
+    .label-row .birth-input-group input { width: 30%; margin: 5px; }
+    input, select, button { font-size: 1.6em; padding: 10px; margin: 10px 0; }
+    .hidden { display: none; }
+    .region-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .region-buttons-container { display: flex; justify-content: center; width: 100%; }
+    .region-button { flex: 0 1 auto; text-align: center; border: 1px solid #ccc; background: #eee; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1.6em; margin: 5px; }
+    .region-button.selected { background-color: #4CAF50; color: white; font-weight: bold; }
+    .timetable { width: 100%; border-collapse: collapse; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); table-layout: fixed; }
+    .timetable .class-button.song-class { background-color: #ffd54f; border-color: #fbc02d; }
+    .timetable .class-button.selected, .timetable .song-class.selected { background-color: #4CAF50; color: white; font-weight: bold; }
+    .timetable .class-button { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; justify-content: center; align-items: center; text-align: center; padding: 8px 5px; font-size: 0.9em; line-height: 1.3; word-break: keep-all; width: 100%; height: 100%; box-sizing: border-box; margin: 0; border: none; background-color: #e0e0e0; cursor: pointer; font-weight: 500; }
+    .timetable .song-class.selected { background-color: #2196F3 !important; }
+    .timetable-container { padding: 20px; background-color: #f9f9f9; }
+    .timetable { width: 100%; border-collapse: collapse; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+    .timetable th, .timetable td { border: 1px solid #ddd; text-align: center; padding: 12px; font-size: 0.9em; }
+    .timetable thead th { background-color: #f1f1f1; font-weight: bold; }
+    .class-button.selected { background-color: #ffd54f; color: black; }
+    .option-button { font-size: 1.6em; padding: 12px 25px; border-radius: 8px; background-color: #cde6ff; border: 2px solid #90caf9; font-weight: bold; }
+    .option-button.selected { background-color: #42a5f5; color: white; border-color: #1e88e5; }
+    .next-button-container { position: fixed; top: 20px; right: 20px; z-index: 1001; }
+    .next-button-container button { font-size: 1.6em; padding: 18px 36px; border-radius: 14px; font-weight: bold; background-color: #1976d2; color: white; border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); cursor: pointer; transition: background-color 0.3s ease; }
+    .next-button-container button:hover { background-color: #1565c0; }
+    .confirmation-table th { background-color: #f5f5f5; font-weight: bold; width: 120px; font-size: 1.6em; }
+    .confirmation-table td, .confirmation-table th { border-bottom: 1px solid #ddd; font-size: 1.6em; }
+    #confirm-classes li { margin-bottom: 12px; list-style-type: disc; }
+    .class-title { font-weight: bold; font-size: 1.0em; }
+    .class-time { font-size: 1.0em; margin-top: 4px; color: #555; }
+    button { font-size: 1.6em; padding: 18px 36px; border-radius: 14px; font-weight: bold; background-color: #1976d2; color: white; border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); cursor: pointer; transition: background-color 0.3s ease; }
+    button:hover { background-color: #1565c0; }
+    @media (min-width: 600px) { .timetable .class-button { font-size: 0.7em; } }
+    @media (min-width: 992px) { .timetable .class-button { font-size: 0.9em; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; } }
+    @media (min-width: 1200px) { .timetable .class-button { font-size: 0.9em; } }
+    .timetable-grid .class-block { display: flex; justify-content: center; align-items: center; text-align: center; padding: 5px; font-size: 0.9em; line-height: 1.3; word-break: keep-all; cursor: pointer; box-sizing: border-box; z-index: 1; border: 1px solid #00acc1; background: #e0f7fa; }
+    @media (min-width: 600px) { .timetable-grid .class-block { font-size: 0.7em; } }
+    @media (min-width: 992px) { .timetable-grid .class-block { font-size: 0.9em; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; } }
+    @media (min-width: 1200px) { .timetable-grid .class-block { font-size: 0.9em; } }
+  </style>
+</head>
+<body>
+  <div class="fixed-header">
+    신림청춘대학 수강 신청
+  </div>
+
+  <div id="step1" class="step">
+    <div class="next-button-container">
+      <button onclick="nextStep(2)">시작하기</button>
+    </div>
+  </div>
+
+  <div id="step2" class="step hidden">
+    <div class="next-button-container"><button onclick="nextStep(3)">다음</button></div>
+    <div class="label-row"><label>이름</label><input type="text" id="name" name="name"></div>
+  </div>
+
+  <div id="step3" class="step hidden">
+    <div class="next-button-container">
+      <button onclick="nextStep(4)">다음</button>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <div class="label-row">
+        <label>생년월일</label>
+        <input type="text" id="birth" name="birth" pattern="\d{2}-\d{2}-\d{2}" placeholder="00-00-00" maxlength="6" inputmode="numeric">
+      </div>
+    </div>
+  </div>
+
+  <div id="step4" class="step hidden">
+    <div class="next-button-container">
+      <button onclick="nextStep(5)">다음</button>
+    </div>
+    <div class="label-row">
+      <label>휴대폰 번호</label>
+      <input type="text" id="phone" name="phone" pattern="\d{3}-\d{4}-\d{4}" placeholder="010-0000-0000" maxlength="13" inputmode="numeric">
+    </div>
+  </div>
+
+  <div id="step5" class="step hidden">
+    <div class="next-button-container">
+      <button onclick="nextStep(6)">다음</button>
+    </div>
+    <div class="label-row">
+      <label>비상연락변호(휴대폰)</label>
+      <input type="text" id="emergency" name="emergency" pattern="\d{3}-\d{4}-\d{4}" placeholder="010-0000-0000" maxlength="13" inputmode="numeric">
+    </div>
+  </div>
+
+
+  <div id="step6" class="step hidden">
+    <div class="next-button-container"><button onclick="nextStep(7)">다음</button></div>
+    <div class="label-row"><label>거주동</label></div>
+    <div class="region-buttons">
+      <div class="region-button" onclick="selectRegion(this)" data-value="난향동">난향동</div>
+      <div class="region-button" onclick="selectRegion(this)" data-value="난곡동">난곡동</div>
+      <div class="region-button" onclick="selectRegion(this)" data-value="미성동">미성동</div>
+      <div class="region-button" onclick="selectRegion(this)" data-value="신사동">신사동</div>
+      <div class="region-button" onclick="selectRegion(this)" data-value="조원동">조원동</div>
+      <div class="region-button" onclick="selectRegion(this)" data-value="관악구 내 타동">관악구 내 타동</div>
+      <div class="region-button" onclick="selectRegion(this)" data-value="서울시 내 타동">서울시 내 타동</div>
+    </div>
+  </div>
+
+  <div id="step7" class="step hidden">
+    <div class="next-button-container"><button onclick="nextStep(8)">다음</button></div>
+    <h4>신청 구분</h4>
+    <div>
+      <button class="option-button" onclick="selectStatus(this)" data-value="신규">신규</button>
+      <button class="option-button" onclick="selectStatus(this)" data-value="기존">기존</button>
+    </div>
+  </div>
+
+  <div id="step8" class="step hidden">
+    <div class="next-button-container"><button onclick="nextStep(9)">다음</button></div>
+    <h4>신청 안내</h4>
+    <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin: 10px 0 20px; border-radius: 10px; color: #856404;">
+      수강신청은 <strong>4개</strong>까지 가능하나,<br />
+      <strong>추첨 여부</strong>에 따라 최종 <strong>3개</strong>까지만 수강 가능합니다.<br /><br />
+      <strong>공통과목(노래, 민요)</strong>은 <strong>2개 신청, 2개 수강</strong> 모두 가능합니다.
+    </div>
+  </div>
+
+  <div id="step9" class="step hidden">
+    <div class="next-button-container">
+      <button onclick="nextStep(10)">다음</button>
+    </div>
+
+    <div class="timetable-container">
+      <h4>수강과목 선택_2층 배움교실</h4>
+      <table class="timetable">
+        <colgroup>
+          <col style="width: 120px;">
+          <col style="width: 160px;" span="5">
+        </
+        </colgroup>
+        <thead>
+          <tr>
+            <th>시간/요일</th>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>9:00~9:50</td>
+            <td><div class="class-button" data-day="월" data-time="09:00~09:50" data-name="한글 기초반">한글 기초반</div></td>
+            <td rowspan="2"><div class="class-button" data-day="화" data-time="09:00~10:20" data-name="스마트폰 기초1반">스마트폰 기초1반</div></td>
+            <td><div class="class-button" data-day="수" data-time="09:00~09:50" data-name="한글 기초반">한글 기초반</div></td>
+            <td rowspan="2"><div class="class-button" data-day="목" data-time="09:00~10:20" data-name="스마트폰 활용1반">스마트폰 활용1반</div></td>
+            <td rowspan="2"><div class="class-button" data-day="금" data-time="09:00~10:20" data-name="컴퓨터 기초반">컴퓨터 기초반</div></td>
+          </tr>
+          <tr>
+            <td>10:00~10:50</td>
+            <td><div class="class-button" data-day="월" data-time="10:00~10:50" data-name="한글 활용반">한글 활용반</div></td>
+            <td><div class="class-button" data-day="수" data-time="10:00~10:50" data-name="한글 활용반">한글 활용반</div></td>
+          </tr>
+          <tr>
+            <td>10:30~11:50</td>
+            <td></td>
+            <td><div class="class-button" data-day="화" data-time="10:30~11:50" data-name="스마트폰 기초2반">스마트폰 기초2반</div></td>
+            <td></td>
+            <td><div class="class-button" data-day="목" data-time="10:30~11:50" data-name="스마트폰 활용2반">스마트폰 활용2반</div></td>
+            <td><div class="class-button" data-day="금" data-time="10:30~11:50" data-name="컴퓨터 활용반">컴퓨터 활용반</div></td>
+          </tr>
+          <tr>
+            <td>13:00~13:50</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><div class="class-button" data-day="목" data-time="13:00~13:50" data-name="영어 기초반">영어 기초반</div></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>14:00~14:50</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td rowspan="2"><div class="class-button" data-day="목" data-time="14:00~14:50" data-name="영어 활용반">영어 활용반</div></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="timetable-container">
+      <h4>수강과목 선택_3층 강당</h4>
+      <table class="timetable">
+        <colgroup>
+          <col style="width: 120px;">
+          <col style="width: 160px;" span="5">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>시간/요일</th>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>10:00~10:50</td>
+            <td><div class="class-button" data-day="월" data-time="10:00~10:50" data-name="실버요가1반">실버요가1반</div></td>
+            <td><div class="class-button" data-day="화" data-time="10:00~10:50" data-name="스포츠체조반">스포츠체조반</div></td>
+            <td><div class="class-button song-class" data-day="수" data-time="10:00~10:50" data-name="민요교실">민요교실</div></td>
+            <td><div class="class-button" data-day="목" data-time="10:00~10:50" data-name="시니어로빅반">시니어로빅반</div></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>11:00~11:50</td>
+            <td><div class="class-button" data-day="월" data-time="11:00~11:50" data-name="실버요가2반">실버요가2반</div></td>
+            <td><div class="class-button" data-day="화" data-time="11:00~11:50" data-name="타마셀프마사지반">타마셀프마사지반</div></td>
+            <td><div class="class-button" data-day="수" data-time="11:00~11:50" data-name="매트필라테스반">매트필라테스반</div></td>
+            <td><div class="class-button" data-day="목" data-time="11:00~11:50" data-name="라인체조반">라인체조반</div></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>13:00~13:50</td>
+            <td></td>
+            <td><div class="class-button" data-day="화" data-time="13:00~14:30" data-name="생활탁구1반">생활탁구1반</div></td>
+            <td><div class="class-button" data-day="수" data-time="13:00~13:50" data-name="건강체조1반">건강체조1반</div></td>
+            <td><div class="class-button" data-day="목" data-time="13:00~13:50" data-name="북반">북반</div></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>13:00~14:30</td>
+            <td><div class="class-button song-class" data-day="월" data-time="13:00~14:30" data-name="노래교실">노래교실</div></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>14:00~14:50</td>
+            <td></td>
+            <td><div class="class-button" data-day="화" data-time="14:00~14:50" data-name="생활탁구2반">생활탁구2반</div></td>
+            <td><div class="class-button" data-day="수" data-time="14:00~14:50" data-name="건강체조2반">건강체조2반</div></td>
+            <td><div class="class-button" data-day="목" data-time="14:00~14:50" data-name="장구반">장구반</div></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="step10" class="step hidden">
+    <h3>신청 정보 확인</h3>
+    <div class="confirmation-wrapper" style="display: flex; justify-content: center; margin-bottom: 30px;">
+      <table class="confirmation-table" style="width: 600px; border-collapse: collapse;">
+        <tbody>
+          <tr>
+            <th style="text-align: left; padding: 10px; border-bottom: 1px solid #ccc; white-space: nowrap;">이름</th>
+            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><span id="confirm-name"></span></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border-bottom: 1px solid #ccc; white-space: nowrap;">생년월일</th>
+            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><span id="confirm-birth"></span></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border-bottom: 1px solid #ccc; white-space: nowrap;">전화번호</th>
+            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><span id="confirm-phone"></span></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border-bottom: 1px solid #ccc; white-space: nowrap;">비상연락망</th>
+            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><span id="confirm-emergency"></span></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border-bottom: 1px solid #ccc; white-space: nowrap;">거주동</th>
+            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><span id="confirm-region"></span></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border-bottom: 1px solid #ccc; white-space: nowrap;">신청 구분</th>
+            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><span id="confirm-status"></span></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; vertical-align: top;">신청 과목</th>
+            <td style="padding: 8px;">
+              <ul id="confirm-classes" style="margin: 0; padding-left: 20px;"></ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="next-button-container">
+      <button onclick="submitForm()">신청 확인</button>
+    </div>
+  </div>
+
+  <div id="step11" class="step hidden">
+    <h3>신청 완료</h3>
+    <p>감사합니다</p>
+    <button id="resetButton">처음으로 돌아가기</button>
+  </div>
+
+  </body>
+</html>
